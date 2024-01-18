@@ -12,9 +12,9 @@
 
 struct gfx_font {
   uint16_t line_height;
-  uint16_t* char_offsets;
-  uint16_t* char_widths;
-  uint8_t* data;
+  uint16_t *char_offsets;
+  uint16_t *char_widths;
+  uint8_t *data;
 };
 
 struct gfx_sprite {
@@ -30,53 +30,54 @@ struct gfx_sprite {
 };
 
 struct gfx {
-  uint16_t* picture_table;
+  uint16_t *picture_table;
   int numpics;
-  uint16_t* masked_picture_table;
+  uint16_t *masked_picture_table;
   int nummaskpics;
-  struct gfx_sprite* sprite_table;
+  struct gfx_sprite *sprite_table;
   int numsprites;
   struct gfx_font fonts[FONT_COUNT];
-  uint8_t** chunks;
-  uint8_t* buffer;
+  uint8_t **chunks;
+  uint8_t *buffer;
 };
 
-void gfx_font_decode(struct gfx_font* font, uint8_t* buffer) {
-  font->line_height = *(uint16_t*)buffer;
+void gfx_font_decode(struct gfx_font *font, uint8_t *buffer) {
+  font->line_height = *(uint16_t *)buffer;
   buffer += U16_SIZE;
-  font->char_offsets = (uint16_t*)buffer;
+  font->char_offsets = (uint16_t *)buffer;
   buffer += 256 * U16_SIZE;
-  font->char_widths = (uint16_t*)buffer;
+  font->char_widths = (uint16_t *)buffer;
   buffer += 256 * U16_SIZE;
   font->data = buffer;
 }
 
-void gfx_sprite_table_decode(struct gfx_sprite* sprite_table, uint8_t* buffer, int numsprites) {
+void gfx_sprite_table_decode(struct gfx_sprite *sprite_table, uint8_t *buffer,
+                             int numsprites) {
   for (int i = 0; i < numsprites; i++) {
-    sprite_table[i].width_div_8 = *(uint16_t*)buffer;
+    sprite_table[i].width_div_8 = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].height = *(uint16_t*)buffer;
+    sprite_table[i].height = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].x_offset = *(uint16_t*)buffer;
+    sprite_table[i].x_offset = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].y_offset = *(uint16_t*)buffer;
+    sprite_table[i].y_offset = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].clip_rect_left = *(uint16_t*)buffer;
+    sprite_table[i].clip_rect_left = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].clip_rect_top = *(uint16_t*)buffer;
+    sprite_table[i].clip_rect_top = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].clip_rect_right = *(uint16_t*)buffer;
+    sprite_table[i].clip_rect_right = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].clip_rect_bottom = *(uint16_t*)buffer;
+    sprite_table[i].clip_rect_bottom = *(uint16_t *)buffer;
     buffer += U16_SIZE;
-    sprite_table[i].shift = *(uint16_t*)buffer;
+    sprite_table[i].shift = *(uint16_t *)buffer;
   }
 }
 
-void gfx_sprite_table_print(struct gfx_sprite* sprite_table, int numsprites) {
+void gfx_sprite_table_print(struct gfx_sprite *sprite_table, int numsprites) {
   printf("Sprites Table:\n\n");
   for (int i = 0; i < numsprites; i++) {
-    struct gfx_sprite* sprite = &sprite_table[i];
+    struct gfx_sprite *sprite = &sprite_table[i];
     printf("width: %d\n", sprite->width_div_8 * 8);
     printf("height: %d\n", sprite->height);
     printf("x_offset: %d\n", sprite->x_offset);
@@ -89,10 +90,10 @@ void gfx_sprite_table_print(struct gfx_sprite* sprite_table, int numsprites) {
   }
 }
 
-void gfx_fonts_print(struct gfx_font* fonts, int numfonts) {
+void gfx_fonts_print(struct gfx_font *fonts, int numfonts) {
   printf("Fonts:\n\n");
   for (int i = 0; i < numfonts; i++) {
-    struct gfx_font* font = &fonts[i];
+    struct gfx_font *font = &fonts[i];
     printf("line_height: %d\n", font->line_height);
     printf("char_offsets: %p\n", font->char_offsets);
     printf("char_widths: %p\n", font->char_widths);
@@ -100,16 +101,18 @@ void gfx_fonts_print(struct gfx_font* fonts, int numfonts) {
   }
 }
 
-struct gfx* gfx_create(char const* head_path, char const* graph_path, char const* dict_path) {
-  struct gfx* gfx = calloc(sizeof(struct gfx), 1);
+struct gfx *gfx_create(char const *head_path, char const *graph_path,
+                       char const *dict_path) {
+  struct gfx *gfx = calloc(sizeof(struct gfx), 1);
   if (gfx == NULL) {
     return NULL;
   }
 
-  struct gfx_decoder* decoder = gfx_decoder_create(head_path, graph_path, dict_path);
+  struct gfx_decoder *decoder =
+      gfx_decoder_create(head_path, graph_path, dict_path);
 
   // alloc chunks
-  gfx->chunks = malloc(sizeof(uint8_t*) * gfx_decoder_head_size(decoder));
+  gfx->chunks = malloc(sizeof(uint8_t *) * gfx_decoder_head_size(decoder));
   if (gfx->chunks == NULL) {
     goto error;
   }
@@ -121,19 +124,19 @@ struct gfx* gfx_create(char const* head_path, char const* graph_path, char const
     goto error;
   }
 
-  uint8_t* decoded_chunk = gfx->buffer;
+  uint8_t *decoded_chunk = gfx->buffer;
   int size = 0;
 
   // decode Picture Table
   gfx->chunks[0] = decoded_chunk;
-  gfx->picture_table = (uint16_t*)decoded_chunk;
+  gfx->picture_table = (uint16_t *)decoded_chunk;
   size = gfx_decoder_decode_sized_chunk(decoder, 0, decoded_chunk);
   gfx->numpics = size / (U16_SIZE * 2);
   decoded_chunk += size;
 
   // decode Masked picture table
   gfx->chunks[1] = decoded_chunk;
-  gfx->masked_picture_table = (uint16_t*)decoded_chunk;
+  gfx->masked_picture_table = (uint16_t *)decoded_chunk;
   size = gfx_decoder_decode_sized_chunk(decoder, 1, decoded_chunk);
   gfx->nummaskpics = size / (U16_SIZE * 2);
   decoded_chunk += size;
@@ -173,7 +176,7 @@ error:
   return NULL;
 }
 
-void gfx_print(struct gfx* gfx) {
+void gfx_print(struct gfx *gfx) {
   printf("numpics: %d\n", gfx->numpics);
   printf("nummaskpics: %d\n", gfx->nummaskpics);
   printf("numsprites: %d\n", gfx->numsprites);
@@ -181,7 +184,7 @@ void gfx_print(struct gfx* gfx) {
   gfx_fonts_print(gfx->fonts, FONT_COUNT);
 }
 
-void gfx_destroy(struct gfx* gfx) {
+void gfx_destroy(struct gfx *gfx) {
   free(gfx->buffer);
   free(gfx->chunks);
   free(gfx);
