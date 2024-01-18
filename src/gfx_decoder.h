@@ -1,6 +1,8 @@
 #ifndef GFX_DECODER_H
 #define GFX_DECODER_H
 
+#include <stdint.h>
+
 struct gfx_decoder;
 
 struct gfx_decoder *gfx_decoder_create(char const *head_path,

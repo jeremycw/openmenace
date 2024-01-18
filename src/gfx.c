@@ -10,6 +10,9 @@
 #define FONT_START_CHUNK_ID 3
 #define FONT_COUNT 2
 
+#define EGA_PLANE_COUNT 4
+#define EGA_MASKED_PLANE_COUNT 5
+
 struct gfx_font {
   uint16_t line_height;
   uint16_t *char_offsets;
@@ -29,7 +32,20 @@ struct gfx_sprite {
   uint16_t shift;
 };
 
+struct gfx_picture {
+  int width;
+  int height;
+  uint8_t* planes[5];
+};
+
+struct gfx_decoder_iter {
+  int cid;
+  uint8_t *buf;
+};
+
 struct gfx {
+  struct gfx_picture *pictures;
+  struct gfx_picture *masked_pictures;
   uint16_t *picture_table;
   int numpics;
   uint16_t *masked_picture_table;
@@ -51,8 +67,8 @@ void gfx_font_decode(struct gfx_font *font, uint8_t *buffer) {
   font->data = buffer;
 }
 
-void gfx_sprite_table_decode(struct gfx_sprite *sprite_table, uint8_t *buffer,
-                             int numsprites) {
+void gfx_sprite_table_deserialize(struct gfx_sprite *sprite_table, uint8_t *buffer,
+                                  int numsprites) {
   for (int i = 0; i < numsprites; i++) {
     sprite_table[i].width_div_8 = *(uint16_t *)buffer;
     buffer += U16_SIZE;
@@ -101,6 +117,30 @@ void gfx_fonts_print(struct gfx_font *fonts, int numfonts) {
   }
 }
 
+
+int gfx_decode_next_chunk(struct gfx *gfx,
+                          struct gfx_decoder_iter *iter,
+                          struct gfx_decoder *decoder) {
+  gfx->chunks[iter->cid] = iter->buf;
+  int size = gfx_decoder_decode_sized_chunk(decoder, iter->cid, iter->buf);
+  iter->buf += size;
+  iter->cid++;
+  return size;
+}
+
+void gfx_decode_pictures(struct gfx* gfx, struct gfx_picture* pictures, uint16_t* picture_table, struct gfx_decoder_iter* iter, struct gfx_decoder *decoder, int n, int numplanes) {
+  for (int i = 0; i < n; i++) {
+    uint8_t *decoded_chunk = iter->buf;
+    int size = gfx_decode_next_chunk(gfx, iter, decoder);
+    pictures[i].width = picture_table[i*U16_SIZE] * 8;
+    pictures[i].height = picture_table[i*U16_SIZE+1];
+    int plane_size = size / numplanes;
+    for (int j = 0; j < numplanes; j++) {
+      pictures[i].planes[j] = decoded_chunk + plane_size * j;
+    }
+  }
+}
+
 struct gfx *gfx_create(char const *head_path, char const *graph_path,
                        char const *dict_path) {
   struct gfx *gfx = calloc(sizeof(struct gfx), 1);
@@ -111,57 +151,71 @@ struct gfx *gfx_create(char const *head_path, char const *graph_path,
   struct gfx_decoder *decoder =
       gfx_decoder_create(head_path, graph_path, dict_path);
 
+  // alloc buffer
+  gfx->buffer = malloc(MEGABYTE * 4);
+  if (gfx->buffer == NULL) {
+    goto error;
+  }
+
   // alloc chunks
   gfx->chunks = malloc(sizeof(uint8_t *) * gfx_decoder_head_size(decoder));
   if (gfx->chunks == NULL) {
     goto error;
   }
 
-  // alloc initial buffer
-  int buffer_capacity = MEGABYTE;
-  gfx->buffer = malloc(buffer_capacity);
-  if (gfx->buffer == NULL) {
-    goto error;
-  }
-
-  uint8_t *decoded_chunk = gfx->buffer;
   int size = 0;
+  struct gfx_decoder_iter iter = {0, gfx->buffer};
 
   // decode Picture Table
-  gfx->chunks[0] = decoded_chunk;
-  gfx->picture_table = (uint16_t *)decoded_chunk;
-  size = gfx_decoder_decode_sized_chunk(decoder, 0, decoded_chunk);
+  gfx->picture_table = (uint16_t *)iter.buf;
+  size = gfx_decode_next_chunk(gfx, &iter, decoder);
   gfx->numpics = size / (U16_SIZE * 2);
-  decoded_chunk += size;
 
   // decode Masked picture table
-  gfx->chunks[1] = decoded_chunk;
-  gfx->masked_picture_table = (uint16_t *)decoded_chunk;
-  size = gfx_decoder_decode_sized_chunk(decoder, 1, decoded_chunk);
+  gfx->masked_picture_table = (uint16_t *)iter.buf;
+  size = gfx_decode_next_chunk(gfx, &iter, decoder);
   gfx->nummaskpics = size / (U16_SIZE * 2);
-  decoded_chunk += size;
 
-  // decode sprite table
-  gfx->chunks[2] = decoded_chunk;
-  size = gfx_decoder_decode_sized_chunk(decoder, 2, decoded_chunk);
+  // decode sprite table chunk
+  uint8_t* sprite_chunk = iter.buf;
+  size = gfx_decode_next_chunk(gfx, &iter, decoder);
   gfx->numsprites = size / (U16_SIZE * 9);
 
+  // alloc sprite table
   gfx->sprite_table = malloc(sizeof(struct gfx_sprite) * gfx->numsprites);
   if (gfx->sprite_table == NULL) {
     goto error;
   }
 
-  gfx_sprite_table_decode(gfx->sprite_table, decoded_chunk, gfx->numsprites);
-  decoded_chunk += size;
+  // deserialize sprite table
+  gfx_sprite_table_deserialize(gfx->sprite_table, sprite_chunk, gfx->numsprites);
 
   // decode fonts
   for (int i = 0; i < FONT_COUNT; i++) {
-    int chunk_id = FONT_START_CHUNK_ID + i;
-    gfx->chunks[chunk_id] = decoded_chunk;
-    size = gfx_decoder_decode_sized_chunk(decoder, chunk_id, decoded_chunk);
+    uint8_t *decoded_chunk = iter.buf;
+    gfx_decode_next_chunk(gfx, &iter, decoder);
     gfx_font_decode(&gfx->fonts[i], decoded_chunk);
-    decoded_chunk += size;
   }
+
+  // alloc pictures
+  gfx->pictures = malloc(sizeof(struct gfx_picture) * gfx->numpics);
+  if (gfx->pictures == NULL) {
+    goto error;
+  }
+
+  // decode pictures
+  gfx_decode_pictures(gfx, gfx->pictures, gfx->picture_table, &iter, decoder,
+      gfx->numpics, EGA_PLANE_COUNT);
+
+  // alloc masked pictures
+  gfx->masked_pictures = malloc(sizeof(struct gfx_picture) * gfx->nummaskpics);
+  if (gfx->pictures == NULL) {
+    goto error;
+  }
+
+  // decode masked pictures
+  gfx_decode_pictures(gfx, gfx->masked_pictures, gfx->masked_picture_table,
+      &iter, decoder, gfx->nummaskpics, EGA_MASKED_PLANE_COUNT);
 
   gfx_decoder_destroy(decoder);
 
@@ -169,6 +223,8 @@ struct gfx *gfx_create(char const *head_path, char const *graph_path,
 
 error:
   gfx_decoder_destroy(decoder);
+  free(gfx->masked_pictures);
+  free(gfx->pictures);
   free(gfx->sprite_table);
   free(gfx->chunks);
   free(gfx->buffer);
