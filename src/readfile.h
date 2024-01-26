@@ -6,6 +6,7 @@
 
 #define U32_SIZE 4
 #define U16_SIZE 2
+#define BITS_PER_BYTE 8
 
 uint32_t read_uint32(FILE *file);
 uint16_t read_uint16(FILE *file);

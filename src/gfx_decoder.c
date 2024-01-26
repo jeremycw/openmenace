@@ -15,6 +15,11 @@ typedef struct {
   uint16_t bit_1;
 } ca_huffnode;
 
+struct gfx_decoder_iter {
+  int cid;
+  uint8_t *buf;
+};
+
 struct gfx_decoder {
   uint32_t *head_buffer;
   int *head_bytes;
@@ -22,6 +27,9 @@ struct gfx_decoder {
   uint8_t *graph_buffer;
   int graph_size;
   ca_huffnode *dict_buffer;
+  struct gfx_decoder_iter iter;
+  void *dst;
+  uint8_t **chunks;
 };
 
 void CAL_HuffExpand(void *src, void *dest, int expLength, ca_huffnode *table,
@@ -67,11 +75,15 @@ void CAL_HuffExpand(void *src, void *dest, int expLength, ca_huffnode *table,
 
 struct gfx_decoder *gfx_decoder_create(char const *head_path,
                                        char const *graph_path,
-                                       char const *dict_path) {
+                                       char const *dict_path, void *dst,
+                                       uint8_t **chunks) {
   struct gfx_decoder *decoder = calloc(sizeof(struct gfx_decoder), 1);
   if (decoder == NULL) {
     return NULL;
   }
+
+  decoder->iter.buf = dst;
+  decoder->chunks = chunks;
 
   FILE *head_file = NULL, *graph_file = NULL, *dict_file = NULL;
 
@@ -174,6 +186,28 @@ int gfx_decoder_decode_unsized_chunk(struct gfx_decoder *decoder, int chunk_id,
   CAL_HuffExpand(compressed_chunk, dst, size, decoder->dict_buffer,
                  decoder->head_bytes[chunk_id]);
   return size;
+}
+
+int gfx_decoder_next_chunk(struct gfx_decoder *decoder) {
+  decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
+  int size = gfx_decoder_decode_sized_chunk(decoder, decoder->iter.cid,
+                                            decoder->iter.buf);
+  decoder->iter.buf += size;
+  decoder->iter.cid++;
+  return size;
+}
+
+int gfx_decoder_next_unsized_chunk(struct gfx_decoder *decoder, int size) {
+  decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
+  gfx_decoder_decode_unsized_chunk(decoder, decoder->iter.cid, size,
+                                   decoder->iter.buf);
+  decoder->iter.buf += size;
+  decoder->iter.cid++;
+  return size;
+}
+
+void *gfx_decoder_current_ptr(struct gfx_decoder *decoder) {
+  return decoder->iter.buf;
 }
 
 void gfx_decoder_destroy(struct gfx_decoder *decoder) {

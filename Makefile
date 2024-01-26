@@ -1,10 +1,10 @@
-OBJS=main.o readfile.o map.o gfx.o gfx_decoder.o
+OBJS=main.o readfile.o map.o gfx.o gfx_decoder.o gfx_pictures.o gfx_sprites.o gfx_fonts.o
 CFLAGS += -Wall -Wextra -Werror -g
 
 %.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-biomenace: $(OBJS)
+openmenace: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
 
 format:
