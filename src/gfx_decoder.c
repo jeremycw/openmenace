@@ -28,7 +28,6 @@ struct gfx_decoder {
   int graph_size;
   ca_huffnode *dict_buffer;
   struct gfx_decoder_iter iter;
-  void *dst;
   uint8_t **chunks;
 };
 
@@ -75,15 +74,11 @@ void CAL_HuffExpand(void *src, void *dest, int expLength, ca_huffnode *table,
 
 struct gfx_decoder *gfx_decoder_create(char const *head_path,
                                        char const *graph_path,
-                                       char const *dict_path, void *dst,
-                                       uint8_t **chunks) {
+                                       char const *dict_path) {
   struct gfx_decoder *decoder = calloc(sizeof(struct gfx_decoder), 1);
   if (decoder == NULL) {
     return NULL;
   }
-
-  decoder->iter.buf = dst;
-  decoder->chunks = chunks;
 
   FILE *head_file = NULL, *graph_file = NULL, *dict_file = NULL;
 
@@ -165,6 +160,12 @@ error:
   return NULL;
 }
 
+void gfx_decoder_set_buffers(struct gfx_decoder *decoder, void *dst,
+                             uint8_t **chunks) {
+  decoder->chunks = chunks;
+  decoder->iter.buf = dst;
+}
+
 int gfx_decoder_head_size(struct gfx_decoder *decoder) {
   return decoder->head_size;
 }
@@ -188,12 +189,17 @@ int gfx_decoder_decode_unsized_chunk(struct gfx_decoder *decoder, int chunk_id,
   return size;
 }
 
+void gfx_decoder_advance_iter(struct gfx_decoder *decoder, int size) {
+  while (decoder->head_buffer[++decoder->iter.cid] == HEAD_EMPTY_SENTINEL);
+  decoder->iter.buf += size;
+}
+
 int gfx_decoder_next_chunk(struct gfx_decoder *decoder) {
   decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
   int size = gfx_decoder_decode_sized_chunk(decoder, decoder->iter.cid,
                                             decoder->iter.buf);
-  decoder->iter.buf += size;
-  decoder->iter.cid++;
+  gfx_decoder_advance_iter(decoder, size);
+
   return size;
 }
 
@@ -201,13 +207,16 @@ int gfx_decoder_next_unsized_chunk(struct gfx_decoder *decoder, int size) {
   decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
   gfx_decoder_decode_unsized_chunk(decoder, decoder->iter.cid, size,
                                    decoder->iter.buf);
-  decoder->iter.buf += size;
-  decoder->iter.cid++;
+  gfx_decoder_advance_iter(decoder, size);
   return size;
 }
 
 void *gfx_decoder_current_ptr(struct gfx_decoder *decoder) {
   return decoder->iter.buf;
+}
+
+int gfx_decoder_current_cid(struct gfx_decoder *decoder) {
+  return decoder->iter.cid;
 }
 
 void gfx_decoder_destroy(struct gfx_decoder *decoder) {

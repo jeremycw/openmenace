@@ -9,9 +9,10 @@
 #define MASKED_16x16_TILE_SIZE 160
 
 struct gfx_picture {
+  uint8_t *planes[5];
   int width;
   int height;
-  uint8_t *planes[5];
+  uint16_t chunk_id;
 };
 
 struct gfx_pictures {
@@ -23,6 +24,7 @@ void gfx_pictures_decode(struct gfx_pictures *pictures, uint16_t *picture_table,
                          struct gfx_decoder *decoder, int n, int numplanes) {
   for (int i = 0; i < n; i++) {
     uint8_t *decoded_chunk = gfx_decoder_current_ptr(decoder);
+    pictures->buffer[i].chunk_id = gfx_decoder_current_cid(decoder);
     int size = gfx_decoder_next_chunk(decoder);
     pictures->buffer[i].width = picture_table[i * U16_SIZE] * 8;
     pictures->buffer[i].height = picture_table[i * U16_SIZE + 1];
@@ -35,8 +37,9 @@ void gfx_pictures_decode(struct gfx_pictures *pictures, uint16_t *picture_table,
 
 void gfx_pictures_deserialize_tiles(struct gfx_pictures *pictures,
                                     uint8_t *raw_ega, int n, int size,
-                                    int numplanes) {
+                                    int numplanes, int chunk_id) {
   for (int i = 0; i < n; i++) {
+    pictures->buffer[i].chunk_id = chunk_id;
     pictures->buffer[i].width = size;
     pictures->buffer[i].height = size;
     int plane_size = size * size / BITS_PER_BYTE;
@@ -67,6 +70,7 @@ struct gfx_pictures *gfx_pictures_create_from_table(uint16_t *table, int n,
 struct gfx_pictures *
 gfx_pictures_create_from_8x8_tile_chunk(struct gfx_decoder *decoder,
                                         int numplanes) {
+  int chunk_id = gfx_decoder_current_cid(decoder);
   uint8_t *raw_ega = gfx_decoder_current_ptr(decoder);
   int size = gfx_decoder_next_chunk(decoder);
   int numunmasked8x8 = size / EGA_8x8_PLANE_SIZE * numplanes;
@@ -74,15 +78,15 @@ gfx_pictures_create_from_8x8_tile_chunk(struct gfx_decoder *decoder,
   struct gfx_pictures *pictures =
       malloc(sizeof(struct gfx_pictures) +
              sizeof(struct gfx_picture) * numunmasked8x8);
-  pictures->n = numunmasked8x8;
-  ;
   if (pictures == NULL) {
     return NULL;
   }
 
+  pictures->n = numunmasked8x8;
+
   // decode pictures
   gfx_pictures_deserialize_tiles(pictures, raw_ega, numunmasked8x8, 8,
-                                 numplanes);
+                                 numplanes, chunk_id);
 
   return pictures;
 }
@@ -102,6 +106,7 @@ struct gfx_pictures *gfx_pictures_create_from_tiles(struct gfx_decoder *decoder,
   pictures->n = tile_count;
 
   for (int i = 0; i < tile_count; i++) {
+    pictures->buffer[i].chunk_id = gfx_decoder_current_cid(decoder);
     pictures->buffer[i].width = tile_size;
     pictures->buffer[i].height = tile_size;
     uint8_t *raw_ega = gfx_decoder_current_ptr(decoder);

@@ -49,7 +49,7 @@ struct gfx *gfx_create(char const *head_path, char const *graph_path,
   }
 
   struct gfx_decoder *decoder = gfx_decoder_create(
-      head_path, graph_path, dict_path, gfx->buffer, gfx->chunks);
+      head_path, graph_path, dict_path);
 
   // alloc buffer
   gfx->buffer = malloc(MEGABYTE * 4);
@@ -62,6 +62,8 @@ struct gfx *gfx_create(char const *head_path, char const *graph_path,
   if (gfx->chunks == NULL) {
     goto error;
   }
+
+  gfx_decoder_set_buffers(decoder, gfx->buffer, gfx->chunks);
 
   int size = 0;
 
