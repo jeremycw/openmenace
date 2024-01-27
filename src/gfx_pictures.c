@@ -124,6 +124,7 @@ void gfx_pictures_print(struct gfx_pictures *pictures) {
   printf("count: %d\n", pictures->n);
   for (int i = 0; i < pictures->n; i++) {
     struct gfx_picture *picture = &pictures->buffer[i];
+    printf("chunk_id: %d\n", picture->chunk_id);
     printf("width: %d\n", picture->width);
     printf("height: %d\n", picture->height);
     printf("planes: %p\n\n", picture->planes);

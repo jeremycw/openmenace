@@ -41,6 +41,7 @@ void gfx_destroy(struct gfx *gfx) {
   free(gfx->buffer);
   free(gfx);
 }
+
 struct gfx *gfx_create(char const *head_path, char const *graph_path,
                        char const *dict_path) {
   struct gfx *gfx = calloc(sizeof(struct gfx), 1);

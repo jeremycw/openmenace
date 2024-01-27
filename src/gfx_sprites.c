@@ -57,6 +57,8 @@ struct gfx_sprites *gfx_sprites_create(struct gfx_decoder *decoder) {
     return NULL;
   }
 
+  sprites->n = numsprites;
+
   gfx_sprite_table_deserialize(sprites, chunk, numsprites);
 
   return sprites;
