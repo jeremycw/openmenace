@@ -190,7 +190,8 @@ int gfx_decoder_decode_unsized_chunk(struct gfx_decoder *decoder, int chunk_id,
 }
 
 void gfx_decoder_advance_iter(struct gfx_decoder *decoder, int size) {
-  while (decoder->head_buffer[++decoder->iter.cid] == HEAD_EMPTY_SENTINEL);
+  while (decoder->head_buffer[++decoder->iter.cid] == HEAD_EMPTY_SENTINEL)
+    ;
   decoder->iter.buf += size;
 }
 

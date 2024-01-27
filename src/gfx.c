@@ -48,8 +48,8 @@ struct gfx *gfx_create(char const *head_path, char const *graph_path,
     return NULL;
   }
 
-  struct gfx_decoder *decoder = gfx_decoder_create(
-      head_path, graph_path, dict_path);
+  struct gfx_decoder *decoder =
+      gfx_decoder_create(head_path, graph_path, dict_path);
 
   // alloc buffer
   gfx->buffer = malloc(MEGABYTE * 4);
