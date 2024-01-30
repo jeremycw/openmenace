@@ -167,6 +167,7 @@ error:
 }
 
 void maptemp_level_print(struct level *level) {
+  printf("Level %d:\n", level->level_id);
   lvlheader_print(&level->header);
   for (int i = 0; i < PLANE_COUNT; i++) {
     printf("Plane %d:\n", i);
