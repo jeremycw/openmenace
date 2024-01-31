@@ -11,4 +11,4 @@ format:
 	find src -name "*.[h|c]" -exec sh -c 'clang-format --style=LLVM $$0 > $$0.frmt; mv $$0.frmt $$0' {} \;
 
 clean:
-	rm -f $(OBJS) biomenace
+	rm -f $(OBJS) openmenace

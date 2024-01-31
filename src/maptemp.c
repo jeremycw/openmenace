@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "map_common.h"
 #include "readfile.h"
 
 #define RLE_MAGIC 0xABCD
@@ -166,6 +167,16 @@ error:
   return NULL;
 }
 
+int maptemp_level_get_id(struct level *level) { return level->level_id; }
+
+struct map_plane maptemp_level_get_plane(struct level *level, int plane_id) {
+  struct map_plane plane;
+  plane.width = level->header.width;
+  plane.height = level->header.height;
+  plane.data = level->planes[plane_id];
+  return plane;
+}
+
 void maptemp_level_print(struct level *level) {
   printf("Level %d:\n", level->level_id);
   lvlheader_print(&level->header);
@@ -173,7 +184,7 @@ void maptemp_level_print(struct level *level) {
     printf("Plane %d:\n", i);
     for (int y = 0; y < level->header.height; y++) {
       for (int x = 0; x < level->header.width; x++) {
-        printf("%d ", level->planes[i][y * level->header.width + x]);
+        printf("%04X ", level->planes[i][y * level->header.width + x]);
       }
       printf("\n");
     }

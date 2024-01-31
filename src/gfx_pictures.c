@@ -119,4 +119,6 @@ void gfx_pictures_print(struct gfx_pictures *pictures) {
   }
 }
 
+int gfx_pictures_count(struct gfx_pictures *pictures) { return pictures->n; }
+
 void gfx_pictures_destroy(struct gfx_pictures *pictures) { free(pictures); }

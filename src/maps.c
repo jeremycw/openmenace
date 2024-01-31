@@ -2,14 +2,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "map_common.h"
 #include "maphead.h"
-#include "maps.h"
 #include "maptemp.h"
 
 struct maps {
   int n;
   struct level *buffer[0];
 };
+
+void maps_destroy(struct maps *maps) {
+  if (maps == NULL) {
+    return;
+  }
+
+  for (int i = 0; i < maps->n; ++i) {
+    maptemp_level_destroy(maps->buffer[i]);
+  }
+  free(maps);
+}
 
 struct maps *maps_create(char const *head_path, const char *map_path) {
   struct maphead *maphead = NULL;
@@ -54,15 +65,15 @@ error:
   return NULL;
 }
 
-void maps_destroy(struct maps *maps) {
-  if (maps == NULL) {
-    return;
-  }
-
+struct map_plane maps_get_level_plane(struct maps *maps, int level_id, int plane_id) {
+  struct map_plane plane = {0};
   for (int i = 0; i < maps->n; ++i) {
-    maptemp_level_destroy(maps->buffer[i]);
+    if (maptemp_level_get_id(maps->buffer[i]) == level_id) {
+      plane = maptemp_level_get_plane(maps->buffer[i], plane_id);
+      break;
+    }
   }
-  free(maps);
+  return plane;
 }
 
 void maps_print(struct maps *maps) {

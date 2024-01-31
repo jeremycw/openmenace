@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "gfx.h"
+#include "gfx_common.h"
 #include "maps.h"
 
 int main() {
@@ -13,6 +14,9 @@ int main() {
       gfx_create("data/EGAHEAD.BM1", "data/EGAGRAPH.BM1", "data/EGADICT.BM1");
   gfx_print(gfx);
   gfx_destroy(gfx);
+
+  int iter = 0;
+  int picture_id = 0;
 
   return 0;
 }

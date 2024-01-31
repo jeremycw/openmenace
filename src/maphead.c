@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "maphead.h"
 #include "readfile.h"
 
 struct maphead {
   uint16_t magic;
   int32_t ptr[100];
 };
+
+void maphead_destroy(struct maphead *maphead) { free(maphead); }
 
 struct maphead *maphead_create(char const *path) {
   struct maphead *maphead = calloc(sizeof(struct maphead), 1);
@@ -57,5 +58,3 @@ int maphead_level_count(struct maphead *maphead) {
   }
   return count;
 }
-
-void maphead_destroy(struct maphead *maphead) { free(maphead); }
