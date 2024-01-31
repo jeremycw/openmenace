@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gfx_common.h"
+#include "gfx.h"
 #include "gfx_decoder.h"
 #include "gfx_fonts.h"
 #include "gfx_pictures.h"
@@ -135,37 +135,39 @@ error:
   return NULL;
 }
 
-int gfx_picture_iter(struct gfx* gfx, enum gfx_picture_type picture_type, int *picture_id, int *iter) {
-  struct gfx_pictures* pictures = NULL;
+int gfx_graphic_iter(struct gfx *gfx, enum gfx_type graphic_type,
+                     struct gfx_ega_graphic *graphic, int *iter) {
+  struct gfx_pictures *pictures = NULL;
 
-  switch (picture_type) {
-  case GFX_PICTURE_TYPE_UNMASKED_PICTURE:
+  switch (graphic_type) {
+  case GFX_TYPE_UNMASKED_PICTURE:
     pictures = gfx->pictures;
     break;
-  case GFX_PICTURE_TYPE_MASKED_PICTURE:
+  case GFX_TYPE_MASKED_PICTURE:
     pictures = gfx->masked_pictures;
     break;
-  case GFX_PICTURE_TYPE_UNMASKED_TILE_8:
+  case GFX_TYPE_UNMASKED_TILE_8:
     pictures = gfx->unmasked8x8;
     break;
-  case GFX_PICTURE_TYPE_MASKED_TILE_8:
+  case GFX_TYPE_MASKED_TILE_8:
     pictures = gfx->masked8x8;
     break;
-  case GFX_PICTURE_TYPE_UNMASKED_TILE_16:
+  case GFX_TYPE_UNMASKED_TILE_16:
     pictures = gfx->unmasked16x16;
     break;
-  case GFX_PICTURE_TYPE_MASKED_TILE_16:
+  case GFX_TYPE_MASKED_TILE_16:
     pictures = gfx->masked16x16;
     break;
   default:
     return 0;
   }
 
+  gfx_pictures_populate_ega_graphic(pictures, graphic, *iter);
+
   if (*iter >= gfx_pictures_count(pictures)) {
     return 0;
   }
 
-  *picture_id = *iter;
   *iter += 1;
 
   return 1;

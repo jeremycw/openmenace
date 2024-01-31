@@ -1,13 +1,12 @@
 #ifndef GFX_COMMON_H
 #define GFX_COMMON_H
 
-enum gfx_picture_type {
-  GFX_PICTURE_TYPE_UNMASKED_PICTURE,
-  GFX_PICTURE_TYPE_MASKED_PICTURE,
-  GFX_PICTURE_TYPE_UNMASKED_TILE_8,
-  GFX_PICTURE_TYPE_MASKED_TILE_8,
-  GFX_PICTURE_TYPE_UNMASKED_TILE_16,
-  GFX_PICTURE_TYPE_MASKED_TILE_16
+#include <stdint.h>
+
+struct gfx_ega_graphic {
+  uint8_t const *planes[5];
+  int width;
+  int height;
 };
 
 #endif

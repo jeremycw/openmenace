@@ -65,7 +65,8 @@ error:
   return NULL;
 }
 
-struct map_plane maps_get_level_plane(struct maps *maps, int level_id, int plane_id) {
+struct map_plane maps_get_level_plane(struct maps *maps, int level_id,
+                                      int plane_id) {
   struct map_plane plane = {0};
   for (int i = 0; i < maps->n; ++i) {
     if (maptemp_level_get_id(maps->buffer[i]) == level_id) {

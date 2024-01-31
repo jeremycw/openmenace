@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "gfx_common.h"
 #include "gfx_decoder.h"
 #include "readfile.h"
 
@@ -117,6 +119,15 @@ void gfx_pictures_print(struct gfx_pictures *pictures) {
     printf("height: %d\n", picture->height);
     printf("planes: %p\n\n", picture->planes);
   }
+}
+
+void gfx_pictures_populate_ega_graphic(struct gfx_pictures *pictures,
+                                       struct gfx_ega_graphic *graphic,
+                                       int index) {
+  struct gfx_picture *picture = &pictures->buffer[index];
+  memcpy(graphic->planes, picture->planes, sizeof(graphic->planes));
+  graphic->width = picture->width;
+  graphic->height = picture->height;
 }
 
 int gfx_pictures_count(struct gfx_pictures *pictures) { return pictures->n; }
