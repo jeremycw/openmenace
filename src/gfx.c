@@ -135,34 +135,33 @@ error:
   return NULL;
 }
 
-int gfx_graphic_iter(struct gfx *gfx, enum gfx_type graphic_type,
-                     struct gfx_ega_graphic *graphic, int *iter) {
-  struct gfx_pictures *pictures = NULL;
-
-  switch (graphic_type) {
+struct gfx_pictures* gfx_get_pictures_for_type(struct gfx* gfx, enum gfx_type type) {
+  switch (type) {
   case GFX_TYPE_UNMASKED_PICTURE:
-    pictures = gfx->pictures;
-    break;
+    return gfx->pictures;
   case GFX_TYPE_MASKED_PICTURE:
-    pictures = gfx->masked_pictures;
-    break;
+    return gfx->masked_pictures;
   case GFX_TYPE_UNMASKED_TILE_8:
-    pictures = gfx->unmasked8x8;
-    break;
+    return gfx->unmasked8x8;
   case GFX_TYPE_MASKED_TILE_8:
-    pictures = gfx->masked8x8;
-    break;
+    return gfx->masked8x8;
   case GFX_TYPE_UNMASKED_TILE_16:
-    pictures = gfx->unmasked16x16;
-    break;
+    return gfx->unmasked16x16;
   case GFX_TYPE_MASKED_TILE_16:
-    pictures = gfx->masked16x16;
-    break;
+    return gfx->masked16x16;
   default:
+    return NULL;
+  }
+}
+
+int gfx_iterate_pictures(struct gfx *gfx, enum gfx_type picture_type,
+                     struct gfx_picture **picture, int *iter) {
+  struct gfx_pictures* pictures = gfx_get_pictures_for_type(gfx, picture_type);
+  if (pictures == NULL) {
     return 0;
   }
 
-  gfx_pictures_populate_ega_graphic(pictures, graphic, *iter);
+  *picture = gfx_pictures_get(pictures, *iter);
 
   if (*iter >= gfx_pictures_count(pictures)) {
     return 0;
@@ -171,6 +170,15 @@ int gfx_graphic_iter(struct gfx *gfx, enum gfx_type graphic_type,
   *iter += 1;
 
   return 1;
+}
+
+int gfx_picture_count(struct gfx *gfx, enum gfx_type graphic_type) {
+  struct gfx_pictures* pictures = gfx_get_pictures_for_type(gfx, graphic_type);
+  if (pictures == NULL) {
+    return 0;
+  }
+
+  return gfx_pictures_count(pictures);
 }
 
 void gfx_print(struct gfx *gfx) {

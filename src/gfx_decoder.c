@@ -189,26 +189,27 @@ int gfx_decoder_decode_unsized_chunk(struct gfx_decoder *decoder, int chunk_id,
   return size;
 }
 
-void gfx_decoder_advance_iter(struct gfx_decoder *decoder, int size) {
-  while (decoder->head_buffer[++decoder->iter.cid] == HEAD_EMPTY_SENTINEL)
-    ;
-  decoder->iter.buf += size;
-}
-
 int gfx_decoder_next_chunk(struct gfx_decoder *decoder) {
   decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
   int size = gfx_decoder_decode_sized_chunk(decoder, decoder->iter.cid,
                                             decoder->iter.buf);
-  gfx_decoder_advance_iter(decoder, size);
+  while (decoder->head_buffer[++decoder->iter.cid] == HEAD_EMPTY_SENTINEL)
+    ;
+  decoder->iter.buf += size;
 
   return size;
 }
 
 int gfx_decoder_next_unsized_chunk(struct gfx_decoder *decoder, int size) {
-  decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
-  gfx_decoder_decode_unsized_chunk(decoder, decoder->iter.cid, size,
-                                   decoder->iter.buf);
-  gfx_decoder_advance_iter(decoder, size);
+  if (decoder->head_buffer[decoder->iter.cid] == HEAD_EMPTY_SENTINEL) {
+    size = 0;
+  } else {
+    decoder->chunks[decoder->iter.cid] = decoder->iter.buf;
+    gfx_decoder_decode_unsized_chunk(decoder, decoder->iter.cid, size,
+                                     decoder->iter.buf);
+  }
+  ++decoder->iter.cid;
+  decoder->iter.buf += size;
   return size;
 }
 

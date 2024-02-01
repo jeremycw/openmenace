@@ -1,4 +1,4 @@
-OBJS=main.o readfile.o maps.o maptemp.o maphead.o gfx.o gfx_decoder.o gfx_pictures.o gfx_sprites.o gfx_fonts.o
+OBJS=main.o readfile.o maps.o maptemp.o maphead.o gfx.o gfx_decoder.o gfx_pictures.o gfx_sprites.o gfx_fonts.o bmp_writer.o tilesheet.o
 CFLAGS += -Wall -Wextra -Werror -g
 
 %.o: src/%.c

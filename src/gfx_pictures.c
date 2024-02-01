@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gfx_common.h"
 #include "gfx_decoder.h"
 #include "readfile.h"
 
@@ -89,8 +88,6 @@ struct gfx_pictures *gfx_pictures_create_from_tiles(struct gfx_decoder *decoder,
                                                     int tile_count,
                                                     int tile_size,
                                                     int numplanes) {
-  // alloc unmasked 16x16 tiles
-
   struct gfx_pictures *pictures = malloc(
       sizeof(struct gfx_pictures) + sizeof(struct gfx_picture) * tile_count);
   if (pictures == NULL) {
@@ -101,7 +98,10 @@ struct gfx_pictures *gfx_pictures_create_from_tiles(struct gfx_decoder *decoder,
 
   for (int i = 0; i < tile_count; i++) {
     uint8_t *raw_ega = gfx_decoder_current_ptr(decoder);
-    gfx_decoder_next_unsized_chunk(decoder, UNMASKED_16x16_TILE_SIZE);
+    int size = gfx_decoder_next_unsized_chunk(decoder, UNMASKED_16x16_TILE_SIZE);
+    if (size == 0) {
+      continue;
+    }
 
     gfx_picture_init(&pictures->buffer[i], tile_size, tile_size, 0, numplanes,
                      raw_ega);
@@ -121,15 +121,37 @@ void gfx_pictures_print(struct gfx_pictures *pictures) {
   }
 }
 
-void gfx_pictures_populate_ega_graphic(struct gfx_pictures *pictures,
-                                       struct gfx_ega_graphic *graphic,
-                                       int index) {
-  struct gfx_picture *picture = &pictures->buffer[index];
-  memcpy(graphic->planes, picture->planes, sizeof(graphic->planes));
-  graphic->width = picture->width;
-  graphic->height = picture->height;
+int gfx_picture_pixel_bit(struct gfx_picture *picture, int pixel_number, int plane_number) {
+  uint8_t *plane = picture->planes[plane_number];
+  return ((plane[pixel_number / BITS_PER_BYTE] >> (pixel_number % BITS_PER_BYTE)) & 1);
+}
+
+int gfx_picture_palette_index_for_pixel(struct gfx_picture *picture, int pixel_number) {
+  int index = 0;
+
+  // Check if bit is masked
+  if (picture->planes[4] && !gfx_picture_pixel_bit(picture, pixel_number, 4)) {
+    return 16;
+  }
+
+  // get the nth bit in the plane by pixel_numer
+  for (int i = 0; i < 4; i++) {
+    int bit = gfx_picture_pixel_bit(picture, pixel_number, i);
+    index |= bit << i;
+  }
+
+  return index;
+}
+
+void gfx_picture_size(struct gfx_picture *picture, int *width, int *height) {
+  *width = picture->width;
+  *height = picture->height;
 }
 
 int gfx_pictures_count(struct gfx_pictures *pictures) { return pictures->n; }
 
 void gfx_pictures_destroy(struct gfx_pictures *pictures) { free(pictures); }
+
+struct gfx_picture *gfx_pictures_get(struct gfx_pictures *pictures, int index) {
+  return &pictures->buffer[index];
+}
